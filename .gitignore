@@ -1,0 +1,7 @@
+#   Gitignore for Project FWD
+
+#   Ignore the workspace specific files
+/.vscode/
+
+#   Ignore the sample data provided
+/sample/
