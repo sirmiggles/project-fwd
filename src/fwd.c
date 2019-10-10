@@ -22,13 +22,15 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    char* fileName = malloc(FILEPATH_MAX * sizeof(char));
+    char* fileName = parseFileName(argv[1]);
     if (!fileName) {
-        fprintf(stderr, "Error: could not allocate memory. (%d)\n", errno);
         return -1;
     }
 
-    parseFileName(argv[1], fileName);
     int* adjMatrix = fileToPointer(fileName);
+    if (!adjMatrix) {
+        return -1;
+    }
+
     return adjMatrix[0];
 }

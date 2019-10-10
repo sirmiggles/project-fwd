@@ -10,7 +10,7 @@
 extern const int FILEPATH_MAX;
 
 /*  File I/O functions  */
-void    parseFileName (char*, char*);
+char*   parseFileName (char*);
 int*    fileToPointer (char*);
 
 /*  Utility functions  */

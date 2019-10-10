@@ -22,13 +22,23 @@ bool fileAccessible(char* fileName) {
 }
 
 /*  Parses the file name to check if it's valid  */
-void parseFileName(char* arg, char* destFileName) {
+char* parseFileName(char* arg) {
+    char* fileName = malloc(FILEPATH_MAX * sizeof(char));
+    if (!fileName) {
+        fprintf(stderr, "Error: could not allocate memory for fileName in parseFileName\n");
+        return NULL;
+    }
+
     bool fileIsAccessible = fileAccessible(arg);
     if (fileIsAccessible) {
-        strcpy(destFileName, arg);
+        strcpy(fileName, arg);
+        return fileName;
     }
+    
     else {
         fprintf(stderr, "%s cannot be found or accessed!\n", arg);
+        free(fileName);
+        return NULL;
     }
 }
 
