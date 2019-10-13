@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <string.h>
 
 #include <mpi.h>
 
@@ -27,10 +28,23 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    int* adjMatrix = fileToPointer(fileName);
+    int* inputData = fileToPointer(fileName);
+    if (!inputData) {
+        return -1;
+    }
+
+    int numV = inputData[0];
+    int** adjMatrix = convertTo2DMatrix(inputData);
     if (!adjMatrix) {
         return -1;
     }
 
-    return adjMatrix[0];
+    printf("N(V) = %d\n", numV);
+
+    for (int i = 0; i < numV; i++) {
+        for (int j = 0; j < numV; j++) {
+            printf("%d -> %d : %d\n", i, j, adjMatrix[i][j]);
+        }
+    }
+    return 0;
 }
