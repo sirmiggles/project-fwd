@@ -12,7 +12,7 @@ extern const int FILEPATH_MAX;
 /*  File I/O functions  */
 char*   parseFileName (char*);
 int*    fileToPointer (char*);
-int**   convertTo2DMatrix   (int*);
+int**   convertTo2DMatrix   (int, int*);
 
 /*  Utility functions  */
 extern void printUsage (void);

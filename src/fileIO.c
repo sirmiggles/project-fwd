@@ -26,7 +26,7 @@ bool fileAccessible(char* fileName) {
 char* parseFileName(char* arg) {
     char* fileName = (char*) malloc(FILEPATH_MAX * sizeof(char));
     if (!fileName) {
-        fprintf(stderr, "Error: could not allocate memory for fileName in parseFileName\n");
+        fprintf(stderr, "Error: could not allocate memory for fileName @%s\n", __func__);
         return NULL;
     }
 
@@ -73,24 +73,22 @@ int* fileToPointer(char* fileName) {
 }
 
 /**/
-int** convertTo2DMatrix(int* inputData) {
-    int numV = inputData[0];
+int** convertTo2DMatrix(int numV, int* edgeArray) {
     int numEdges = numV * numV;
 
-    printf("N(E) = %d\n", numEdges);
     int** matrix = malloc(numEdges * sizeof(int));
     for (int i = 0; i < numV; i++) {
         if (!(matrix[i] = (int *) malloc(sizeof(int) * numV))) {
+            fprintf(stderr, "Error: Could not allocate memory to 2D matrix @ %s", __func__);
             return NULL;
         }
     }
 
     int v = 0;
-    for (int i = 1; i < numEdges + 1; i++) {
-        int edgesIndex = i - 1;                 //  index of edge, in terms of the actual edges array
-        int neighbor = edgesIndex % numV;       //  Index of the neighbor vertex
-        v = (neighbor == 0 && i > 1) ? v + 1: v;
-        matrix[v][neighbor] = inputData[i];
+    for (int i = 0; i < numEdges; i++) {
+        int neighbor = i % numV;       //  Index of the neighbor vertex
+        v = (neighbor == 0 && i > 0) ? v + 1: v;
+        matrix[v][neighbor] = edgeArray[i];
     }
 
     return matrix;

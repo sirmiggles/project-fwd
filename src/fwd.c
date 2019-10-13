@@ -34,17 +34,22 @@ int main(int argc, char** argv) {
     }
 
     int numV = inputData[0];
-    int** adjMatrix = convertTo2DMatrix(inputData);
+    int* edgeArray = malloc(sizeof(int) * numV * numV);
+    if (!edgeArray) {
+        fprintf(stderr, "Error: could not allocate memory to edgeArray @ %s\n", __func__);
+        return -1;
+    }
+
+    memcpy(edgeArray, inputData + 1, sizeof(int) * numV * numV);
+
+    free(inputData);
+
+    int** adjMatrix = convertTo2DMatrix(numV, edgeArray);
     if (!adjMatrix) {
         return -1;
     }
 
-    printf("N(V) = %d\n", numV);
-
-    for (int i = 0; i < numV; i++) {
-        for (int j = 0; j < numV; j++) {
-            printf("%d -> %d : %d\n", i, j, adjMatrix[i][j]);
-        }
-    }
+    printf("%d -> %d : %d\n", 0, 0, adjMatrix[0][0]);
+    printf("%d -> %d : %d\n", numV - 1, numV - 1, adjMatrix[numV - 1][numV - 1]);
     return 0;
 }
