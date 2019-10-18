@@ -6,5 +6,8 @@
 #   Ignore the sample data provided
 /sample/examples.zip
 
+#   Ignore the cluster output and error files
+/cluster/
+
 #   Ignore the essay related material
 /essay/
