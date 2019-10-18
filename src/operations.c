@@ -12,6 +12,7 @@
 #include "fwd.h"
 
 /*  Initialize the distances of all vertices to other vertices  */
+/*  MPI-ify?  */
 int** initDistances(int numV, int** adjMatrix) {
     unsigned int numEdges = numV * numV;
     int** distances = (int**) malloc(sizeof(int) * numEdges);
@@ -24,7 +25,14 @@ int** initDistances(int numV, int** adjMatrix) {
 
     for (int i = 0; i < numV; i++) {
         for (int j = 0; j < numV; j++) {
-            distances[i][j] = (adjMatrix[i][j] != 0) ? adjMatrix[i][j] : INF;
+            //  If the edge isn't pointing to itself, initialize the distance
+            if (i != j) {
+                distances[i][j] = (adjMatrix[i][j] != 0) ? adjMatrix[i][j] : INF;
+            }
+            //  Set dist (from edge to itself) to 0
+            else {
+                distances[i][j] = 0;
+            }
         }
     }
     return distances;
