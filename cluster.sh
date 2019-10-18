@@ -1,9 +1,11 @@
 #PBS -l nodes=8:ppn=4
 #PBS -m abe
 #PBS -M 22240204@student.uwa.edu.au
-
+#PBS -e error.txt
+#PBS -o out.txt
 source /etc/bash.bashrc
 cd ./project
+make
 mpirun fwd sample/4.in
 echo "done with 4"
 mpirun fwd sample/16.in
