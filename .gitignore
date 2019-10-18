@@ -4,7 +4,7 @@
 /.vscode/
 
 #   Ignore the sample data provided
-/sample/
+/sample/examples.zip
 
 #   Ignore the essay related material
 /essay/
