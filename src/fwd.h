@@ -8,6 +8,7 @@
 
 /*  Global Variables  */
 extern const int FILEPATH_MAX;
+extern const int INF;
 
 /*  File I/O functions  */
 char*   parseFileName (char*);
@@ -16,3 +17,7 @@ int**   convertTo2DMatrix   (int, int*);
 
 /*  Utility functions  */
 extern void printUsage (void);
+
+/*  Operation functions  */
+extern int**    initDistances (int, int**);
+extern int**    floydWarshall (int, int**, int**);
