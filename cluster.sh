@@ -3,4 +3,16 @@
 #PBS -M 22240204@student.uwa.edu.au
 
 source /etc/bash.bashrc
-mpirun fwd
+cd ./project
+mpirun fwd sample/4.in
+echo "done with 4"
+mpirun fwd sample/16.in
+echo "done with 16"
+mpirun fwd sample/32.in
+echo "done with 32"
+mpirun fwd sample/512.in
+echo "done with 512"
+mpirun fwd sample/512.in
+echo "done with 512"
+mpirun fwd sample/1024.in
+echo "done with 1024"
