@@ -50,6 +50,10 @@ int main(int argc, char** argv) {
     }
 
     int** distances = initDistances(numV, adjMatrix);
+    if (!distances) {
+        return -1;
+    }
+    
     for (int i = 0; i < numV; i++) {
         for (int j = 0; j < numV; j++) {
             printf("%d ", distances[i][j]);

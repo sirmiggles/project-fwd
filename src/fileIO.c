@@ -26,7 +26,7 @@ bool fileAccessible(char* fileName) {
 char* parseFileName(char* arg) {
     char* fileName = (char*) malloc(FILEPATH_MAX * sizeof(char));
     if (!fileName) {
-        fprintf(stderr, "Error: could not allocate memory for fileName @%s\n", __func__);
+        fprintf(stderr, "Error: could not allocate memory for fileName @%s (%d)\n", __func__, errno);
         return NULL;
     }
 
@@ -59,7 +59,7 @@ int* fileToPointer(char* fileName) {
     //  Read the file and convert it into an int pointer
     int* adjMatrix = (int*) malloc(fileInfo.st_size * sizeof(int));
     if (!adjMatrix) {
-        fprintf(stderr, "Error: could not allocate memory. (%d)\n", errno);
+        fprintf(stderr, "Error: could not allocate memory for adjMatrix @ %s (%d)\n", __func__, errno);
         return NULL;
     }
 

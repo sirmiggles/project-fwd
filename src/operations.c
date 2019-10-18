@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include "fwd.h"
 
@@ -16,6 +17,7 @@ int** initDistances(int numV, int** adjMatrix) {
     int** distances = (int**) malloc(sizeof(int) * numEdges);
     for (int i = 0; i < numV; i++) {
         if (!(distances[i] = (int*) malloc(sizeof(int) * numEdges))) {
+            fprintf(stderr, "Could not allocate memory for distances from edge %d @ %s (%d)", i, __func__, errno);
             return NULL;
         }
     }
