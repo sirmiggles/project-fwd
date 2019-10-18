@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
 
 #include "fwd.h"
@@ -32,6 +33,23 @@ int** initDistances(int numV, int** adjMatrix) {
             //  Set dist (from edge to itself) to 0
             else {
                 distances[i][j] = 0;
+            }
+        }
+    }
+    return distances;
+}
+
+int** floydWarshall(int numV, int** adjMatrix, int** distances) {
+    for(int k = 0; k < numV; k++) {
+        for (int i = 0; i < numV; i++) {
+            for (int j = 0; j < numV; j++) {
+                //  If these have uninitialized vertices, don't do anything
+                if (distances[i][k] == INF || distances[k][j] == INF) {
+                    continue;
+                }
+                if (distances[i][j] > distances[i][k] + distances[k][j]) {
+                    distances[i][j] = distances[i][k] + distances[k][j];
+                }               
             }
         }
     }

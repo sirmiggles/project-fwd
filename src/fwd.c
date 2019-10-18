@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/time.h>
 #include <sys/stat.h>
 #include <string.h>
 
@@ -49,16 +50,18 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
     int** distances = initDistances(numV, adjMatrix);
     if (!distances) {
         return -1;
     }
     
-    for (int i = 0; i < numV; i++) {
-        for (int j = 0; j < numV; j++) {
-            printf("%d ", distances[i][j]);
-        }
-        printf("\n");
-    }
+    distances = floydWarshall(numV, adjMatrix, distances);
+    gettimeofday(&end, NULL);
+    double delta = ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6;
+    printf("Executed in %10.6f\n", delta);
+    free(distances);
+    free(adjMatrix);
     return 0;
 }

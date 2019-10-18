@@ -20,3 +20,4 @@ extern void printUsage (void);
 
 /*  Operation functions  */
 extern int**    initDistances (int, int**);
+extern int**    floydWarshall (int, int**, int**);
