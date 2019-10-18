@@ -5,5 +5,11 @@
     Last Modified:  10/10/2019
 */
 
+#include <limits.h>
+
+#include "fwd.h"
+
 /*  The max length of a filepath  */
 const int FILEPATH_MAX = 256;
+
+const int INF = INT_MAX;

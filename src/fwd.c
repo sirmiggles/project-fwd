@@ -49,7 +49,12 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    printf("%d -> %d : %d\n", 0, 0, adjMatrix[0][0]);
-    printf("%d -> %d : %d\n", numV - 1, numV - 1, adjMatrix[numV - 1][numV - 1]);
+    int** distances = initDistances(numV, adjMatrix);
+    for (int i = 0; i < numV; i++) {
+        for (int j = 0; j < numV; j++) {
+            printf("%d ", distances[i][j]);
+        }
+        printf("\n");
+    }
     return 0;
 }
