@@ -1,5 +1,5 @@
 /*
-    File Name:      parser.c
+    File Name:      fileIO.c
     Description:    Contains the binary file parser for fwd
     Author:         MIGUEL ARIES SAMBAT TABADERO (22240204)
     Last Modified:  10/10/2019
@@ -52,7 +52,7 @@ int* fileToPointer(char* fileName) {
         return NULL;
     }
 
-    //  Find out the size of the file and elements required in pointer
+    //  Determine out the size of the file and elements required in pointer
     struct stat fileInfo;
     stat(fileName, &fileInfo);
 
@@ -72,7 +72,7 @@ int* fileToPointer(char* fileName) {
     return adjMatrix;
 }
 
-/**/
+/*  Convert the edge array into a 2D Matrix  */
 int** convertTo2DMatrix(int numV, int* edgeArray) {
     int numEdges = numV * numV;
 
