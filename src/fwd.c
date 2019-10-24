@@ -18,66 +18,69 @@
 #include "fwd.h"
 
 int main(int argc, char** argv) {
-    //  Print usage if there are no arguments provided
+    int numV = -1;
+    int* edgeArray;
 
+    //  MPI Init
     int rank, clusterSize;
-    //MPI_Status status;
-
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &clusterSize);
-    switch (rank) {
-        case 0:
-            if (argc < 2) {
-                printUsage();
-                return -1;
-            }
 
-            char* fileName = parseFileName(argv[1]);
-            if (!fileName) {
-                return -1;
-            }
+    //  Head Node File I/O
+    if (rank == 0) {
+        if (argc < 2) {
+            printUsage();
+            return -1;
+        }
 
-            int* inputData = fileToPointer(fileName);
-            if (!inputData) {
-                return -1;
-            }
+        char* fileName = parseFileName(argv[1]);
+        if (!fileName) {
+            return -1;
+        }
 
-            int numV = inputData[0];
-            int* edgeArray = malloc(sizeof(int) * numV * numV);
-            if (!edgeArray) {
-                fprintf(stderr, "Error: could not allocate memory to edgeArray @ %s\n", __func__);
-                return -1;
-            }
+        int* inputData = fileToPointer(fileName);
+        if (!inputData) {
+            return -1;
+        }
 
-            memcpy(edgeArray, inputData + 1, sizeof(int) * numV * numV);
+        numV = inputData[0];
+        printf("Number of vertices in graph: %d\n", numV);
+        if (numV < 1) {
+            fprintf(stderr, "Error: insufficient number of vertices, numV. numV must be greater than 0.\n");
+            MPI_Finalize();
+            return -1;
+        }
 
-            free(inputData);
-
-            int** adjMatrix = convertTo2DMatrix(numV, edgeArray);
-            if (!adjMatrix) {
-                return -1;
-            }
-
-            struct timeval start, end;
-            gettimeofday(&start, NULL);
-            int** distances = initDistances(numV, adjMatrix);
-            if (!distances) {
-                return -1;
-            }
-            
-            distances = floydWarshall(numV, adjMatrix, distances);
-            gettimeofday(&end, NULL);
-            double delta = ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6;
-            printf("Executed in %10.6f\n", delta);
-            free(distances);
-            free(adjMatrix);
-            break;
-        
-        default: 
-            printf("Bro man, I'm %d\n", rank);
+        edgeArray = (int *) malloc(sizeof(int) * numV * numV);
+        if (!edgeArray) {
+            fprintf(stderr, "Error: could not allocate memory to edgeArray @ %s\n", __func__);
+            MPI_Finalize();
+            return -1;
+        }
+        memcpy(edgeArray, inputData + 1, sizeof(int) * numV * numV);
+        free(inputData);
     }
 
+    //  Broadcast the number of vertices to all nodes, and wait for all of them to receive
+    MPI_Bcast(&numV, 1, MPI_INT, rank, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    int* distances;
+    if(!(distances = initMatrix(numV, edgeArray, rank, clusterSize))) {
+        return -1;
+    }
+
+    int** matrix = (int**) malloc(sizeof(int) * numV * numV);
+    
+    if (rank == 0) {
+        free(edgeArray);        //  No longer needed
+        for (int i = 0; i < numV * numV; i++) {
+            printf("%d ", distances[i]);
+        }
+        printf("\n");
+    }
+   
     MPI_Finalize();
     return 0;
 }

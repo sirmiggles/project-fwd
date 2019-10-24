@@ -71,26 +71,3 @@ int* fileToPointer(char* fileName) {
     fclose(fp);
     return adjMatrix;
 }
-
-/*  Convert the edge array into a 2D Matrix  */
-int** convertTo2DMatrix(int numV, int* edgeArray) {
-    int numEdges = numV * numV;
-
-    int** matrix = malloc(numEdges * sizeof(int));
-    for (int i = 0; i < numV; i++) {
-        if (!(matrix[i] = (int *) malloc(sizeof(int) * numV))) {
-            fprintf(stderr, "Error: Could not allocate memory to 2D matrix @ %s", __func__);
-            return NULL;
-        }
-    }
-
-    int v = 0;
-    for (int i = 0; i < numEdges; i++) {
-        int neighbor = i % numV;       //  Index of the neighbor vertex
-        v = (neighbor == 0 && i > 0) ? v + 1: v;
-        matrix[v][neighbor] = edgeArray[i];
-    }
-
-    return matrix;
-}
-

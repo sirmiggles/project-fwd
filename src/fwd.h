@@ -2,7 +2,7 @@
     File Name:      fwd.h
     Description:    Main header file for fwd
     Author:         MIGUEL ARIES SAMBAT TABADERO (22240204)
-    Last Modified:  10/10/2019
+    Last Modified:  25/10/2019
 */
 
 
@@ -13,11 +13,10 @@ extern const int INF;
 /*  File I/O functions  */
 char*   parseFileName (char*);
 int*    fileToPointer (char*);
-int**   convertTo2DMatrix   (int, int*);
 
 /*  Utility functions  */
 extern void printUsage (void);
 
 /*  Operation functions  */
-extern int**    initDistances (int, int**);
-extern int**    floydWarshall (int, int**, int**);
+extern void     initDistances (int, int**);
+extern int*     initMatrix(int, int*, int, int);
