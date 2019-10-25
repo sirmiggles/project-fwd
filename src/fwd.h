@@ -14,12 +14,13 @@ extern int rank;
 extern int clusterSize;
 
 /*  File I/O functions  */
-char*   parseFileName (char*);
-int*    fileToPointer (char*);
+extern char*    parseFileName (char*);
+extern int*     fileToPointer (char*);
+extern void     logOutput(char*, int, int*, double);
 
 /*  Utility functions  */
 extern void     printUsage              (void);
-extern int**    allocContiguousMatrix   (int, int);
+extern void     printOutput             (int, int*);
 
 /*  Operation functions  */
 extern int*     allocateTargets         (int, int*, int*);

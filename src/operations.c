@@ -33,6 +33,12 @@ void initDistance(int numLocalV, int** distances, int disp, int numV) {
 }
 
 /*  Initialize the distances for the entire vertex set 
+    -   Use Scatterv() to partition the distance array and distribute
+        load amongst the processors
+    -   Use Gatherv() to consolidate their results
+    -   Uses Scatterv() and Gatherv() to allow irregular sized messages,
+        and asynchronicity
+        
     return the distances initialized for the vertex set
     return NULL on error occurrence
 */
@@ -71,22 +77,26 @@ int* initAllDistances(int numV, int* edgeArray) {
     //  Wait for processes to finish before performing scatter
     MPI_Barrier(MPI_COMM_WORLD);
 
-    int* destination = (int *) malloc(sizeof(int) * numV * numV);
-    if (!destination) {
-        fprintf(stderr, "Error: could not allocate memory to destination @ %s\n", __func__);
+    int* allDistances = (int *) malloc(sizeof(int) * numV * numV);
+    if (!allDistances) {
+        fprintf(stderr, "Error: could not allocate memory to allDistances @ %s\n", __func__);
         return NULL;
     }
 
     //  Scatter the edge array elements, and initialize the distances
     MPI_Scatterv(edgeArray, sendCounts, displs, MPI_INT, localEdgeArray, numLocalV, MPI_INT, 0, MPI_COMM_WORLD);
     initDistance(numLocalV, &localEdgeArray, displs[rank], numV);
-    MPI_Gatherv(localEdgeArray, numLocalV, MPI_INT, destination, sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gatherv(localEdgeArray, numLocalV, MPI_INT, allDistances, sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
 
-    //  Free node-local memory pointers
-    return destination;
+    return allDistances;
 }
 
-/*  Using MPI_Scatterv(), allocate target vertices to nodes 
+/*  Using MPI_Scatterv(), allocate target vertices to nodes
+    -   Used for determining which processor will execute tasks
+        for which node
+    -   Scatterv used to allow irregular sized messages for matrices
+        that cannot be evenly partitioned to the nodes
+
     returns the local targets for a node, if successful
     returns NULL, on error occurence.
 */
@@ -128,6 +138,15 @@ int* allocateTargets(int numV, int* vertexSet, int* numTargets) {
     return targets;
 }
 
+/*  Find and calculate the values of APSP (All-pairs shortest paths)
+    -   Use Scatterv to partition path calculations to processors
+    -   Use Gatherv to aggregate the results into the output pointer
+    -   Scatterv and Gatherv are used to allow segregated, not 
+        contiguous memory allocations on the heap
+
+    return the shortest paths pointer
+    return NULL on error occurrence
+*/
 int* calculateAPSP(int numV, int* distances, int numTargets, int* targets) {
     int *sendCounts, *displs, *localEdgeArray;
     //  initialize sendCounts and displs for Scatterv
@@ -178,23 +197,27 @@ int* calculateAPSP(int numV, int* distances, int numTargets, int* targets) {
     return apsp;
 }
 
+/*  Floyd-Warshall algorithm executed per processor
+    - PASS BY REFERENCE FUNCT
+*/
 void FloydWarshall(int numV, int* dist, int numTargets, int* targets, int numLocalV) {
     int k, i, j;
     int kNode;
     int* kRow = (int*) malloc(sizeof(int) * numV);
 
     for (k = 0; k < numV; k++) {
-        if (numV / clusterSize == 0 || numV < clusterSize)
-            kNode = 0;
-        else 
-            kNode = k / (numV / clusterSize);
+        //  Determine who the processor of this vertex
+        kNode = k / (numTargets);
 
+        //  Get copy of row from dist, ir this processor "owns" the vertex
         if (rank == kNode) {
             getRow(k, kRow, numV, dist);
         }
 
+        //  Broadcast the distances of k -> j to all other nodes other than kNode
         MPI_Bcast(kRow, numV, MPI_INT, kNode, MPI_COMM_WORLD);
 
+        //  Compare the distances from i->k + k->j with i->j
         for (i = 0; i < numTargets; i++) {
             for (j = 0; j < numV; j++) {
                 if (dist[i * numV + k] + kRow[j] < dist[i * numV + j]) {
@@ -203,7 +226,8 @@ void FloydWarshall(int numV, int* dist, int numTargets, int* targets, int numLoc
             }
         }
     }
-    //  Set unreachables to -1
+
+    //  Set unreachables to -1, i.e. no paths between.
     for (int i = 0; i < numLocalV; i++) {
         if (dist[i] == INF) {
             dist[i] = -1;
@@ -211,6 +235,7 @@ void FloydWarshall(int numV, int* dist, int numTargets, int* targets, int numLoc
     }
 }
 
+/*  Get a copy of the row from the distance segment  */
 void getRow(int v, int* rowOfV, int numV, int* dist) {
     int offSet;
     if (numV / clusterSize == 0 || numV < clusterSize) {

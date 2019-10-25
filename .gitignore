@@ -4,7 +4,7 @@
 /.vscode/
 
 #   Ignore the sample data provided
-/sample/examples.zip
+/sample/examples*
 
 #   Ignore the cluster output and error files
 /cluster/

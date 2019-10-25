@@ -2,10 +2,8 @@
     File Name:      globals.c
     Description:    Contains the global variables for fwd
     Author:         MIGUEL ARIES SAMBAT TABADERO (22240204)
-    Last Modified:  10/10/2019
+    Last Modified:  25/10/2019
 */
-
-#include <limits.h>
 
 #include "fwd.h"
 

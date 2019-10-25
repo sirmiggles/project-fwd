@@ -2,7 +2,7 @@
     File Name:      util.c
     Description:    Utility functions for fwd
     Author:         MIGUEL ARIES SAMBAT TABADERO (22240204)
-    Last Modified:  10/10/2019
+    Last Modified:  25/10/2019
 */
 
 #include <stdio.h>
@@ -15,18 +15,11 @@ void printUsage(void) {
     fprintf(stderr, "Usage: ./fwd <file_1>\n");
 }
 
-int** allocContiguousMatrix(int rows, int cols) {
-    int* contig = (int*) malloc(sizeof(int) * rows * cols);
-    if (!contig) {
-        return NULL;
+/*  Print the results of execution  */
+void printOutput(int numV, int* apsp) {
+    printf("Number of vertices: %d\n", numV);
+    for (int i = 0; i < numV * numV; i++) {
+        printf("%d ", apsp[i]);
     }
-    int** outMatrix = (int**) malloc(rows * sizeof(int*));
-    if (!outMatrix) {
-        return NULL;
-    }
-    for (int i = 0; i < cols; i++) {
-        outMatrix[i] = &contig[cols * i];
-    }
-
-    return outMatrix;
+    printf("\n");
 }
