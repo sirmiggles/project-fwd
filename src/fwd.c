@@ -95,35 +95,27 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    printf("Node-%d: ", rank);
-    for (int i = 0; i < numTargets; i++) {
-        printf("%d ", targets[i]);
-    }
-    printf("\n");
-
     //  Initialize the matrices
-    int* distances;
-    if(!(distances = initMatrix(numV, edgeArray))) {
+    int* distances = (int *) malloc(sizeof(int) * numV * numV);
+    if(!(distances = initAllDistances(numV, edgeArray))) {
         MPI_Finalize();
         return -1;
     }
 
-    //  int* targets = NULL;
     //  Broadcast the distances
-    MPI_Bcast(&distances, numV * numV, MPI_INT, rank, MPI_COMM_WORLD);
+    MPI_Bcast(&distances[0], numV * numV, MPI_INT, rank, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
-    //  int** matrix = convertEdgesToMatrix(distances);
-    
+
+    int** localTargetDistances = convertToLocalMatrix(numV, targets, distances, numTargets);
+    if (!localTargetDistances) {
+        return -1;
+    }
+
     if (rank == 0) {
         printf("%s\n", outFileName);
         free(edgeArray);        //  No longer needed
-        for (int i = 0; i < numV * numV; i++) {
-            printf("%d ", distances[i]);
-        }
-        printf("\n");
     }
-
-    
+        
     free(distances);
     MPI_Finalize();
     return 0;

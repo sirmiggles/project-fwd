@@ -14,7 +14,9 @@
 
 #include "fwd.h"
 
-/*  Initialize the distances for an array  */
+/*  Initialize the distances for an array 
+    - Alters distances array by reference  
+*/
 void initDistance(int numV, int** distances) {
     int *dist = *distances;
     for (int i = 0; i < numV; i++) {
@@ -23,8 +25,11 @@ void initDistance(int numV, int** distances) {
     *distances = dist;
 }
 
-/*  Initialize the distances for the entire vertex set  */
-int* initMatrix(int numV, int* edgeArray) {
+/*  Initialize the distances for the entire vertex set 
+    return the distances initialized for the vertex set
+    return NULL on error occurrence
+*/
+int* initAllDistances(int numV, int* edgeArray) {
     int *sendCounts, *displs, *localEdgeArray;
     //  initialize sendCounts and displs for Scatterv
     if (!(sendCounts = (int *) malloc(sizeof(int) * clusterSize))) {
@@ -74,12 +79,10 @@ int* initMatrix(int numV, int* edgeArray) {
     free(localEdgeArray);
     free(sendCounts);
     free(displs);
-
     return destination;
 }
 
-/*  
-    Using MPI_Scatterv(), allocate target vertices to nodes
+/*  Using MPI_Scatterv(), allocate target vertices to nodes 
     returns the local targets for a node, if successful
     returns NULL, on error occurence.
 */
@@ -122,43 +125,41 @@ int* allocateTargets(int numV, int* vertexSet, int* numTargets) {
     return targets;
 }
 
-/*  Using MPI_Scatterv(), convert the given distances array into a 2D matrix  */
-int** convertEdgesToMatrix(int numV, int* targets, int* distances, int clusterSize) {
+/*  Using MPI_Scatterv(), convert the given distances array into a 2D matrix 
+    returns the edges of the node's targets
+    returns NULL on error occurence
+*/
+int** convertToLocalMatrix(int numV, int* targets, int* distances, int numTargets) {
     //  Initialize output matrix
-    int** matrix = (int**) malloc(sizeof(int*) * numV);
+    int** localMatrix = (int**) malloc(sizeof(int*) * numTargets);
     for (int i = 0; i < numV; i++) {
-        if(!(matrix[i] = (int*) malloc(sizeof(int*) * numV))) {
+        if(!(localMatrix[i] = (int*) malloc(sizeof(int*) * numV))) {
             fprintf(stderr, "Error: could not allocate memory to matrix @ %s\n", __func__);
             return NULL;
         }
     }
 
-    int *sendCounts, *displs;
-    //  initialize sendCounts and displs for Scatterv
-    if (!(sendCounts = (int *) malloc(sizeof(int) * clusterSize))) {
-        fprintf(stderr, "Error: could not allocate memory to sendCounts @ %s", __func__);
-        NULL;
-    } 
-    if (!(displs = (int *) malloc(sizeof(int) * clusterSize))) {
-        fprintf(stderr, "Error: could not allocate memory to displs @ %s", __func__);
-        NULL;
-    }
-
-
-    //  Allocate work partition for scatter v
-    int rem = numV % clusterSize;
-    int sum = 0;
-    for (int i = 0; i < clusterSize; i++) {
-        sendCounts[i] = numV / clusterSize;
-        if (rem > 0) {
-            (sendCounts[i])++;
-            rem--;
+    for (int i = 0; i < numTargets; i++) {
+        int targ = targets[i];
+        int sp = targ * numV;
+        int dest = 0;
+        for (int j = sp; j < sp + numV; j++) {
+            //  If i is the destination, set to 0
+            localMatrix[i][dest] = (targ == dest) ? 0 : distances[j];
+            dest++;
         }
-
-        displs[i] = sum;
-        sum += sendCounts[i];
     }
-    
-    return matrix;
+
+    for (int i = 0; i < numTargets; i++) {
+        for (int j = 0; j < numV; j++) {
+            printf("%d ", localMatrix[i][j]);
+        }
+        printf("\n");
+    }
+    return localMatrix;
+}
+
+int** gatherLocalMatrices(int numV, int** localMatrices, int numTargets) {
+    int** adjMatrix = NULL;
 }
 
