@@ -149,6 +149,12 @@ int** convertToLocalMatrix(int numV, int* targets, int* distances, int numTarget
         }
     }
 
+    for (int i = 0; i < numTargets; i++) {
+        for(int j = 0; j < numV; j++) {
+            printf("%d ", localMatrix[i][j]);
+        }
+        printf("\n");
+    }
     return localMatrix;
 }
 

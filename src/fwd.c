@@ -102,14 +102,17 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    printf("Initial distances initialized...\n");
+
     //  Broadcast the distances
-    MPI_Bcast(&distances[0], numV * numV, MPI_INT, rank, MPI_COMM_WORLD);
+    MPI_Bcast(distances, numV * numV, MPI_INT, rank, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
 
     int** localTargetDistances = convertToLocalMatrix(numV, targets, distances, numTargets);
     if (!localTargetDistances) {
         return -1;
-    }
+    }  
+
 
     int** adjMatrix = allocContiguousMatrix(numV, numV);
     if (!adjMatrix) {
