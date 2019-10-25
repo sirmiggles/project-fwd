@@ -19,10 +19,6 @@
 #include "fwd.h"
 
 int main(int argc, char** argv) {
-    int numV = -1;
-    int* edgeArray;
-
-    //  MPI Init
     int rank, clusterSize;
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -31,7 +27,9 @@ int main(int argc, char** argv) {
     time_t now;
     struct tm *execStart;
     char outFileName[32];
-
+    int* edgeArray;
+    int* vertexSet;
+    int  numV = -1;
     //  Head Node File I/O
     if (rank == 0) {
         if (argc < 2) {
@@ -64,6 +62,17 @@ int main(int argc, char** argv) {
             return -1;
         }
 
+        //  Create vertex set for work allocation to processors
+        vertexSet = (int *) malloc(sizeof(int) * numV);
+        if (!vertexSet) {
+            fprintf(stderr, "Error: could not allocate memory to vertexSet @ %s\n", __func__);
+            MPI_Finalize();
+            return -1;
+        }
+        for (int i = 0; i < numV; i++) {
+            vertexSet[i] = i;
+        }
+
         edgeArray = (int *) malloc(sizeof(int) * numV * numV);
         if (!edgeArray) {
             fprintf(stderr, "Error: could not allocate memory to edgeArray @ %s\n", __func__);
@@ -78,6 +87,7 @@ int main(int argc, char** argv) {
     MPI_Bcast(&numV, 1, MPI_INT, rank, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
 
+    //  Initialize the matrices
     int* distances;
     if(!(distances = initMatrix(numV, edgeArray, rank, clusterSize))) {
         return -1;
@@ -90,7 +100,6 @@ int main(int argc, char** argv) {
             return -1;
         }
     }
-
     
     if (rank == 0) {
         printf("%s\n", outFileName);
