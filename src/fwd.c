@@ -111,16 +111,21 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    int** adjMatrix = allocContiguousMatrix(numV);
+    int** adjMatrix = allocContiguousMatrix(numV, numV);
     if (!adjMatrix) {
         return -1;
     }
-
+    
     //  Broadcast the newfound matrix
     adjMatrix = gatherLocalMatrices(numV, localTargetDistances, numTargets);
     MPI_Bcast(&(adjMatrix[0][0]), numV * numV, MPI_INT, rank, MPI_COMM_WORLD);
-
     if (!adjMatrix) {
+        return -1;
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    int** pathsOfTargets = getSPOfTargets(numV, numTargets, targets, adjMatrix);
+    if (!pathsOfTargets) {
         return -1;
     }
     
@@ -129,8 +134,8 @@ int main(int argc, char** argv) {
         printf("%s\n", outFileName);
         free(edgeArray);        //  No longer needed
     }
-    free(adjMatrix);
-    free(distances);
+    // free(adjMatrix);
+    // free(distances);
 
     MPI_Finalize();
     return 0;

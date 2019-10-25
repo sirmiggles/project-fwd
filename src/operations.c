@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 
 #include <mpi.h>
 
@@ -131,7 +132,7 @@ int* allocateTargets(int numV, int* vertexSet, int* numTargets) {
 */
 int** convertToLocalMatrix(int numV, int* targets, int* distances, int numTargets) {
     //  Initialize output matrix
-    int** localMatrix = allocContiguousMatrix(numV);
+    int** localMatrix = allocContiguousMatrix(numTargets, numV);
     if(!localMatrix) {
         fprintf(stderr, "Error: could not allocate memory to matrix @ %s\n", __func__);
         return NULL;
@@ -148,17 +149,11 @@ int** convertToLocalMatrix(int numV, int* targets, int* distances, int numTarget
         }
     }
 
-    for (int i = 0; i < numTargets; i++) {
-        for (int j = 0; j < numV; j++) {
-            printf("%d ", localMatrix[i][j]);
-        }
-        printf("\n");
-    }
     return localMatrix;
 }
 
 int** gatherLocalMatrices(int numV, int** localMatrices, int numTargets) {
-    int** adjMatrix = allocContiguousMatrix(numV);
+    int** adjMatrix = allocContiguousMatrix(numV, numV);
     if (!adjMatrix) {
         fprintf(stderr, "Error: could not allocate memory to adjMatrix @ %s\n", __func__);
         return NULL;
@@ -191,4 +186,40 @@ int** gatherLocalMatrices(int numV, int** localMatrices, int numTargets) {
     MPI_Gatherv(&(localMatrices[0][0]), numTargets, MPI_INT, &(adjMatrix[0][0]), sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
 
     return adjMatrix;
+}
+
+int** getSPOfTargets(int numV, int numTargets, int* targets, int** adjMatrix) {
+    int** targetPaths = allocContiguousMatrix(numTargets, numV);
+    if (!targetPaths) {
+        fprintf(stderr, "Error: could not allocate memory to targetPaths @ %s\n", __func__);
+        return NULL;
+    }
+
+    int** dist = allocContiguousMatrix(numV, numV);
+    if (!dist) {
+        fprintf(stderr, "Error: could not allocate memory to dists @ %s\n", __func__);
+        return NULL;
+    }
+    
+    for (int i = 0; i < numV; i++) {
+        memcpy(dist[i], adjMatrix[i], sizeof(int) * numV);
+    }
+
+    for (int k = 0; k < numV; k++) {
+        for (int i = 0; i < numTargets; i++) {
+            int target = targets[i];
+            for (int j = 0; j < numV; i++) {
+                if (adjMatrix[target][k] == INF || adjMatrix[k][j] == INF) {
+                    printf("Continuing...\n");
+                    continue;
+                }
+                if (adjMatrix[i][j] > adjMatrix[i][k] + adjMatrix[k][j]) {
+                    adjMatrix[i][j] = adjMatrix[i][k] + adjMatrix[k][j];
+                }
+            }
+            targetPaths[i] = adjMatrix[target];
+        }
+    }
+
+    return targetPaths;
 }

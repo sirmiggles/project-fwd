@@ -15,11 +15,17 @@ void printUsage(void) {
     fprintf(stderr, "Usage: ./fwd <file_1>\n");
 }
 
-int** allocContiguousMatrix(int numV) {
-    int* contig = (int*) malloc(sizeof(int) * numV * numV);
-    int** outMatrix = (int**) malloc(numV * sizeof(int*));
-    for (int i = 0; i < numV; i++) {
-        outMatrix[i] = &contig[numV * i];
+int** allocContiguousMatrix(int rows, int cols) {
+    int* contig = (int*) malloc(sizeof(int) * rows * cols);
+    if (!contig) {
+        return NULL;
+    }
+    int** outMatrix = (int**) malloc(rows * sizeof(int*));
+    if (!outMatrix) {
+        return NULL;
+    }
+    for (int i = 0; i < cols; i++) {
+        outMatrix[i] = &contig[cols * i];
     }
 
     return outMatrix;
