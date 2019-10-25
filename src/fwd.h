@@ -26,5 +26,5 @@ extern int*     allocateTargets         (int, int*, int*);
 extern void     initDistance            (int, int**);
 extern int*     initAllDistances        (int, int*);
 extern int**    convertToLocalMatrix    (int, int*, int*, int);
-extern int**    gatherLocalMatrices     (int, int**, int);
+extern int**    gatherLocalMatrices     (int**, int, int**, int);
 extern int**    getSPOfTargets          (int, int, int*, int**);

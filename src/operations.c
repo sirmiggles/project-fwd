@@ -77,9 +77,6 @@ int* initAllDistances(int numV, int* edgeArray) {
     MPI_Gatherv(localEdgeArray, numLocalV, MPI_INT, destination, sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
 
     //  Free node-local memory pointers
-    free(localEdgeArray);
-    free(sendCounts);
-    free(displs);
     return destination;
 }
 
@@ -148,23 +145,10 @@ int** convertToLocalMatrix(int numV, int* targets, int* distances, int numTarget
             dest++;
         }
     }
-
-    for (int i = 0; i < numTargets; i++) {
-        for(int j = 0; j < numV; j++) {
-            printf("%d ", localMatrix[i][j]);
-        }
-        printf("\n");
-    }
     return localMatrix;
 }
 
-int** gatherLocalMatrices(int numV, int** localMatrices, int numTargets) {
-    int** adjMatrix = allocContiguousMatrix(numV, numV);
-    if (!adjMatrix) {
-        fprintf(stderr, "Error: could not allocate memory to adjMatrix @ %s\n", __func__);
-        return NULL;
-    }
-
+int** gatherLocalMatrices(int** adjMatrix, int numV, int** localMatrices, int numTargets) {
     int *sendCounts, *displs;
     //  initialize sendCounts and displs for Scatterv
     if (!(sendCounts = (int *) malloc(sizeof(int) * clusterSize))) {
@@ -189,8 +173,11 @@ int** gatherLocalMatrices(int numV, int** localMatrices, int numTargets) {
         sum += sendCounts[i];
     }
 
-    MPI_Gatherv(&(localMatrices[0][0]), numTargets, MPI_INT, &(adjMatrix[0][0]), sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
-
+    int err = MPI_Gatherv(&(localMatrices[0][0]), numTargets, MPI_INT, &(adjMatrix[0][0]), sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
+    if (err == MPI_SUCCESS) {
+        printf("%d: Hit the woah\n", rank);
+    }
+    MPI_Bcast(&(adjMatrix[0][0]), numV, MPI_INT, 0, MPI_COMM_WORLD);
     return adjMatrix;
 }
 
@@ -205,10 +192,6 @@ int** getSPOfTargets(int numV, int numTargets, int* targets, int** adjMatrix) {
     if (!dist) {
         fprintf(stderr, "Error: could not allocate memory to dists @ %s\n", __func__);
         return NULL;
-    }
-    
-    for (int i = 0; i < numV; i++) {
-        memcpy(dist[i], adjMatrix[i], sizeof(int) * numV);
     }
 
     for (int k = 0; k < numV; k++) {

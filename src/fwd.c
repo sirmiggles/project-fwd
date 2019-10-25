@@ -102,44 +102,38 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    printf("Initial distances initialized...\n");
+    if (rank == 0) {
+        printf("Initial distances initialized...\n");
+    }
 
     //  Broadcast the distances
     MPI_Bcast(distances, numV * numV, MPI_INT, rank, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
 
-    int** localTargetDistances = convertToLocalMatrix(numV, targets, distances, numTargets);
-    if (!localTargetDistances) {
+    int** localTargetDistances = allocContiguousMatrix(numV, numTargets);
+    if (!(localTargetDistances = convertToLocalMatrix(numV, targets, distances, numTargets))) {
+        MPI_Finalize();
         return -1;
-    }  
+    }
 
+    if (rank == 0) {
+        printf("Localized target distances initialized...\n");
+    }
 
     int** adjMatrix = allocContiguousMatrix(numV, numV);
     if (!adjMatrix) {
+        fprintf(stderr, "Error: could not allocate contiguous memory to adjMatrix @ %s\n", __func__);
+        MPI_Finalize();
         return -1;
     }
-    
-    //  Broadcast the newfound matrix
-    adjMatrix = gatherLocalMatrices(numV, localTargetDistances, numTargets);
-    MPI_Bcast(&(adjMatrix[0][0]), numV * numV, MPI_INT, rank, MPI_COMM_WORLD);
-    if (!adjMatrix) {
-        return -1;
-    }
+
+    adjMatrix = gatherLocalMatrices(adjMatrix, numV, localTargetDistances, numTargets);
+
+    //MPI_Bcast(&(adjMatrix[0][0]), numV, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
-
-    int** pathsOfTargets = getSPOfTargets(numV, numTargets, targets, adjMatrix);
-    if (!pathsOfTargets) {
-        return -1;
+    for (int i = 0; i < numV; i++) {
+        //printf("%d ", adjMatrix[0][i]);
     }
-    
-
-    if (rank == 0) {
-        printf("%s\n", outFileName);
-        free(edgeArray);        //  No longer needed
-    }
-    // free(adjMatrix);
-    // free(distances);
-
     MPI_Finalize();
     return 0;
 }
