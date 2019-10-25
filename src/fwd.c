@@ -19,7 +19,7 @@
 #include "fwd.h"
 
 int main(int argc, char** argv) {
-    int rank, clusterSize;
+
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &clusterSize);
@@ -87,19 +87,32 @@ int main(int argc, char** argv) {
     MPI_Bcast(&numV, 1, MPI_INT, rank, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
 
-    //  Initialize the matrices
-    int* distances;
-    if(!(distances = initMatrix(numV, edgeArray, rank, clusterSize))) {
+    //  Initialize the target matrices that this matrix will complete
+    int numTargets = 0;
+    int* targets = allocateTargets(numV, vertexSet, &numTargets);
+    if (!targets) {
+        MPI_Finalize();
         return -1;
     }
 
-    int** matrix = (int**) malloc(sizeof(int*) * numV);
-    for (int i = 0; i < numV; i++) {
-        if(!(matrix[i] = (int*) malloc(sizeof(int*) * numV))) {
-            fprintf(stderr, "Error: could not allocate memory to matrix @ %s\n", __func__);
-            return -1;
-        }
+    printf("Node-%d: ", rank);
+    for (int i = 0; i < numTargets; i++) {
+        printf("%d ", targets[i]);
     }
+    printf("\n");
+
+    //  Initialize the matrices
+    int* distances;
+    if(!(distances = initMatrix(numV, edgeArray))) {
+        MPI_Finalize();
+        return -1;
+    }
+
+    //  int* targets = NULL;
+    //  Broadcast the distances
+    MPI_Bcast(&distances, numV * numV, MPI_INT, rank, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+    //  int** matrix = convertEdgesToMatrix(distances);
     
     if (rank == 0) {
         printf("%s\n", outFileName);
@@ -109,6 +122,7 @@ int main(int argc, char** argv) {
         }
         printf("\n");
     }
+
     
     free(distances);
     MPI_Finalize();

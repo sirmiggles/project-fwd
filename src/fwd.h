@@ -21,5 +21,6 @@ int*    fileToPointer (char*);
 extern void printUsage (void);
 
 /*  Operation functions  */
-extern void     initDistances (int, int**);
-//extern int*     initMatrix(int, int*, int, int);
+extern int*     allocateTargets(int, int*, int*);
+extern void     initDistances   (int, int**);
+extern int*     initMatrix      (int, int*);
