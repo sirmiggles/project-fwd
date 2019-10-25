@@ -4,6 +4,7 @@
 #PBS -e error.txt
 #PBS -o out.txt
 source /etc/bash.bashrc
+syncCluster
 cd ./project
 make
 mpirun fwd sample/4.in

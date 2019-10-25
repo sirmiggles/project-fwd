@@ -1,28 +1,32 @@
 /*
-    File Name:      parser.c
+    File Name:      fileIO.c
     Description:    Contains the binary file parser for fwd
     Author:         MIGUEL ARIES SAMBAT TABADERO (22240204)
-    Last Modified:  10/10/2019
+    Last Modified:  25/10/2019
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
-#include <math.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <string.h>
 
 #include "fwd.h"
 
-/*  Check if file exists and can be read  */
+/*  Check if file exists and can be read  
+    returns true, if the file exists and is accessible
+*/
 bool fileAccessible(char* fileName) {
     return (access(fileName, F_OK) != -1 && access(fileName, R_OK) != -1)   \
             ? true : false;
 }
 
-/*  Parses the file name to check if it's valid  */
+/*  Parses the file name to check if it's valid  
+    returns the parsed filename from argv as a char*
+    returns NULL on error occurrence
+*/
 char* parseFileName(char* arg) {
     char* fileName = (char*) malloc(FILEPATH_MAX * sizeof(char));
     if (!fileName) {
@@ -43,16 +47,18 @@ char* parseFileName(char* arg) {
     }
 }
 
-/*  Convert the file to an int pointer  */
+/*  Convert the file to an int pointer of data
+    returns the int pointer of binary data
+    returns NULL on error occurrence
+*/
 int* fileToPointer(char* fileName) {
-    printf("Attempting to read file @%s...\n", fileName);
     FILE* fp = fopen(fileName, "rb");
     if (!fp) {
         fprintf(stderr, "Error: Could not open the file %s. (%d)\n ", fileName, errno);
         return NULL;
     }
 
-    //  Find out the size of the file and elements required in pointer
+    //  Determine out the size of the file and elements required in pointer
     struct stat fileInfo;
     stat(fileName, &fileInfo);
 
@@ -72,25 +78,22 @@ int* fileToPointer(char* fileName) {
     return adjMatrix;
 }
 
-/**/
-int** convertTo2DMatrix(int numV, int* edgeArray) {
-    int numEdges = numV * numV;
-
-    int** matrix = malloc(numEdges * sizeof(int));
-    for (int i = 0; i < numV; i++) {
-        if (!(matrix[i] = (int *) malloc(sizeof(int) * numV))) {
-            fprintf(stderr, "Error: Could not allocate memory to 2D matrix @ %s", __func__);
-            return NULL;
-        }
+/*  Prints the output into a log file with the same name as source file
+    -   Uses strtok, so if a super directory has a ".", behaviour is unspecified
+    -   Will output log file to same directory as input file
+*/
+void logOutput(char* sourceFN, int numV, int* apsp, double execTime) {
+    char* outFN = (char*) malloc(sizeof(char) * (FILEPATH_MAX + 3));
+    outFN = strtok(sourceFN, ".");
+    strcat(outFN,".out");
+    FILE* fp = fopen(outFN, "w+");
+    
+    fprintf(fp, "%d ", numV);
+    for (int i = 0; i < numV * numV; i++) {
+        fprintf(fp, "%d ", apsp[i]);
     }
-
-    int v = 0;
-    for (int i = 0; i < numEdges; i++) {
-        int neighbor = i % numV;       //  Index of the neighbor vertex
-        v = (neighbor == 0 && i > 0) ? v + 1: v;
-        matrix[v][neighbor] = edgeArray[i];
-    }
-
-    return matrix;
+    fprintf(fp, "\n");
+    printf("Logfile @ %s\n", outFN);
+    fclose(fp);
+    free(outFN);
 }
-

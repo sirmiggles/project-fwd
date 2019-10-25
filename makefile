@@ -9,7 +9,7 @@
 
 #	Compiler information and compile flags (cc for MacOS, gcc for Linux)
 CC    = mpicc
-FLAGS = -Wall -Werror -pedantic -std=c99 -O2
+FLAGS = -Wall -Werror -pedantic -std=c99
 
 #	Target for compilation
 TARG     = fwd
