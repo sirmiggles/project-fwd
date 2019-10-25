@@ -6,9 +6,12 @@
 */
 
 
-/*  Global Variables  */
+/*  Global Constants  */
 extern const int FILEPATH_MAX;
 extern const int INF;
+
+extern int rank;
+extern int clusterSize;
 
 /*  File I/O functions  */
 char*   parseFileName (char*);
@@ -19,4 +22,4 @@ extern void printUsage (void);
 
 /*  Operation functions  */
 extern void     initDistances (int, int**);
-extern int*     initMatrix(int, int*, int, int);
+//extern int*     initMatrix(int, int*, int, int);

@@ -13,3 +13,8 @@
 const int FILEPATH_MAX = 256;
 /*  The representation of infinity in the program  */
 const int INF = INT_MAX;
+
+/*  The rank of a node  */
+int rank;
+/*  The total number of nodes in the cluster  */
+int clusterSize;
