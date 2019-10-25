@@ -12,7 +12,7 @@
 /*  The max length of a filepath  */
 const int FILEPATH_MAX = 256;
 /*  The representation of infinity in the program  */
-const int INF = INT_MAX;
+const int INF = 9999999;
 
 /*  The rank of a node  */
 int rank;

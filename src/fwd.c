@@ -26,11 +26,13 @@ int main(int argc, char** argv) {
 
     time_t now;
     struct tm *execStart;
-    char outFileName[32];
+    char outFileName[64];
     int* edgeArray;
     int* vertexSet;
     int  numV = -1;
     //  Head Node File I/O
+    struct timeval start, end;
+
     if (rank == 0) {
         if (argc < 2) {
             printUsage();
@@ -52,8 +54,8 @@ int main(int argc, char** argv) {
         //  Initialize outfile params
         now = time(NULL);
         execStart = localtime(&now);
-        strftime(outFileName, 32, "%Y-%m-%d_%H%M.out", execStart);
-
+        strftime(outFileName, 64, "log/%Y-%m-%d_%H%M.out", execStart);
+        
         numV = inputData[0];
         printf("Number of vertices in graph: %d\n", numV);
         if (numV < 1) {
@@ -61,6 +63,8 @@ int main(int argc, char** argv) {
             MPI_Finalize();
             return -1;
         }
+
+        gettimeofday(&start, NULL);
 
         //  Create vertex set for work allocation to processors
         vertexSet = (int *) malloc(sizeof(int) * numV);
@@ -84,7 +88,7 @@ int main(int argc, char** argv) {
     }
 
     //  Broadcast the number of vertices to all nodes, and wait for all of them to receive
-    MPI_Bcast(&numV, 1, MPI_INT, rank, MPI_COMM_WORLD);
+    MPI_Bcast(&numV, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
 
     //  Initialize the target matrices that this matrix will complete
@@ -102,38 +106,35 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    //  Broadcast the distances
+    MPI_Bcast(distances, numV * numV, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Barrier(MPI_COMM_WORLD);
+
     if (rank == 0) {
         printf("Initial distances initialized...\n");
+        for (int i = 0; i < numV * numV; i++) {
+            if (i > 0 && i % numV == 0) 
+                printf("\n");
+            printf("%d ", distances[i]);
+        }
     }
 
-    //  Broadcast the distances
-    MPI_Bcast(distances, numV * numV, MPI_INT, rank, MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
-
-    int** localTargetDistances = allocContiguousMatrix(numV, numTargets);
-    if (!(localTargetDistances = convertToLocalMatrix(numV, targets, distances, numTargets))) {
-        MPI_Finalize();
-        return -1;
-    }
-
+    int* apsp = calculateAPSP(numV, distances, numTargets, targets);
     if (rank == 0) {
-        printf("Localized target distances initialized...\n");
+        gettimeofday(&end, NULL);
+        printf("APSP Calculated: \n");
+        for (int i = 0; i < numV * numV; i++) {
+            if (i > 0 && i % numV == 0) 
+                printf("\n");
+            printf("%d ", apsp[i]);
+        }
+       
+        printf("\n");
+        double delta = ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6;
+        printf("Total Execution Time: %10.6fs\n", delta);
+        //logOutput(apsp);
     }
-
-    int** adjMatrix = allocContiguousMatrix(numV, numV);
-    if (!adjMatrix) {
-        fprintf(stderr, "Error: could not allocate contiguous memory to adjMatrix @ %s\n", __func__);
-        MPI_Finalize();
-        return -1;
-    }
-
-    adjMatrix = gatherLocalMatrices(adjMatrix, numV, localTargetDistances, numTargets);
-
-    //MPI_Bcast(&(adjMatrix[0][0]), numV, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Barrier(MPI_COMM_WORLD);
-    for (int i = 0; i < numV; i++) {
-        //printf("%d ", adjMatrix[0][i]);
-    }
+    
     MPI_Finalize();
-    return 0;
+    return apsp[0];
 }

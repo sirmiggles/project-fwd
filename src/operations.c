@@ -18,10 +18,16 @@
 /*  Initialize the distances for an array 
     - Alters distances array by reference  
 */
-void initDistance(int numV, int** distances) {
+void initDistance(int numLocalV, int** distances, int disp, int numV) {
     int *dist = *distances;
-    for (int i = 0; i < numV; i++) {
+    for (int i = 0; i < numLocalV; i++) {
+        int row = disp / numV;
+        int col = disp % numV;
         dist[i] = (dist[i] == 0) ? INF : dist[i];
+        if (row == col) {
+            dist[i] = 0;
+        }
+        disp++;
     }
     *distances = dist;
 }
@@ -73,7 +79,7 @@ int* initAllDistances(int numV, int* edgeArray) {
 
     //  Scatter the edge array elements, and initialize the distances
     MPI_Scatterv(edgeArray, sendCounts, displs, MPI_INT, localEdgeArray, numLocalV, MPI_INT, 0, MPI_COMM_WORLD);
-    initDistance(numV, &localEdgeArray);
+    initDistance(numLocalV, &localEdgeArray, displs[rank], numV);
     MPI_Gatherv(localEdgeArray, numLocalV, MPI_INT, destination, sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
 
     //  Free node-local memory pointers
@@ -119,37 +125,11 @@ int* allocateTargets(int numV, int* vertexSet, int* numTargets) {
     
     //  Scatter the edge array elements, and initialize the distances
     MPI_Scatterv(vertexSet, sendCounts, displs, MPI_INT, targets, (*numTargets), MPI_INT, 0, MPI_COMM_WORLD);
-   
     return targets;
 }
 
-/*  Using MPI_Scatterv(), convert the given distances array into a 2D matrix 
-    returns the edges of the node's targets
-    returns NULL on error occurence
-*/
-int** convertToLocalMatrix(int numV, int* targets, int* distances, int numTargets) {
-    //  Initialize output matrix
-    int** localMatrix = allocContiguousMatrix(numTargets, numV);
-    if(!localMatrix) {
-        fprintf(stderr, "Error: could not allocate memory to matrix @ %s\n", __func__);
-        return NULL;
-    }
-
-    for (int i = 0; i < numTargets; i++) {
-        int targ = targets[i];
-        int sp = targ * numV;
-        int dest = 0;
-        for (int j = sp; j < sp + numV; j++) {
-            //  If i is the destination, set to 0
-            localMatrix[i][dest] = (targ == dest) ? 0 : distances[j];
-            dest++;
-        }
-    }
-    return localMatrix;
-}
-
-int** gatherLocalMatrices(int** adjMatrix, int numV, int** localMatrices, int numTargets) {
-    int *sendCounts, *displs;
+int* calculateAPSP(int numV, int* distances, int numTargets, int* targets) {
+    int *sendCounts, *displs, *localEdgeArray;
     //  initialize sendCounts and displs for Scatterv
     if (!(sendCounts = (int *) malloc(sizeof(int) * clusterSize))) {
         fprintf(stderr, "Error: could not allocate memory to sendCounts @ %s", __func__);
@@ -165,7 +145,7 @@ int** gatherLocalMatrices(int** adjMatrix, int numV, int** localMatrices, int nu
     for (int i = 0; i < clusterSize; i++) {
         sendCounts[i] = (numV * numV) / clusterSize;
         if (rem > 0) {
-            (sendCounts[i]) += numV;
+            (sendCounts[i])++;
             rem--;
         }
 
@@ -173,42 +153,73 @@ int** gatherLocalMatrices(int** adjMatrix, int numV, int** localMatrices, int nu
         sum += sendCounts[i];
     }
 
-    int err = MPI_Gatherv(&(localMatrices[0][0]), numTargets, MPI_INT, &(adjMatrix[0][0]), sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
-    if (err == MPI_SUCCESS) {
-        printf("%d: Hit the woah\n", rank);
+    //  Destination pointer for scatter
+    int numLocalV = sendCounts[rank];
+    if (!(localEdgeArray = (int*) malloc(sizeof(int) * numLocalV))) {
+        fprintf(stderr, "Error: could not allocate memory to localEdgeArray @ %s\n", __func__);
+        return NULL;
     }
-    MPI_Bcast(&(adjMatrix[0][0]), numV, MPI_INT, 0, MPI_COMM_WORLD);
-    return adjMatrix;
+
+    //  Wait for processes to finish before performing scatter
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    int* apsp = (int *) malloc(sizeof(int) * numV * numV);
+    if (!apsp) {
+        fprintf(stderr, "Error: could not allocate memory to apsp @ %s\n", __func__);
+        return NULL;
+    }
+    
+    //  Scatter the edge array elements, and initialize the distances
+    MPI_Scatterv(distances, sendCounts, displs, MPI_INT, localEdgeArray, numLocalV, MPI_INT, 0, MPI_COMM_WORLD);
+    FloydWarshall(numV, localEdgeArray, numTargets, targets, numLocalV);
+    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Gatherv(localEdgeArray, numLocalV, MPI_INT, apsp, sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
+
+    return apsp;
 }
 
-int** getSPOfTargets(int numV, int numTargets, int* targets, int** adjMatrix) {
-    int** targetPaths = allocContiguousMatrix(numTargets, numV);
-    if (!targetPaths) {
-        fprintf(stderr, "Error: could not allocate memory to targetPaths @ %s\n", __func__);
-        return NULL;
-    }
+void FloydWarshall(int numV, int* dist, int numTargets, int* targets, int numLocalV) {
+    int k, i, j;
+    int kNode;
+    int* kRow = (int*) malloc(sizeof(int) * numV);
 
-    int** dist = allocContiguousMatrix(numV, numV);
-    if (!dist) {
-        fprintf(stderr, "Error: could not allocate memory to dists @ %s\n", __func__);
-        return NULL;
-    }
+    for (k = 0; k < numV; k++) {
+        if (numV / clusterSize == 0 || numV < clusterSize)
+            kNode = 0;
+        else 
+            kNode = k / (numV / clusterSize);
 
-    for (int k = 0; k < numV; k++) {
-        for (int i = 0; i < numTargets; i++) {
-            int target = targets[i];
-            for (int j = 0; j < numV; i++) {
-                if (adjMatrix[target][k] == INF || adjMatrix[k][j] == INF) {
-                    printf("Continuing...\n");
-                    continue;
-                }
-                if (adjMatrix[i][j] > adjMatrix[i][k] + adjMatrix[k][j]) {
-                    adjMatrix[i][j] = adjMatrix[i][k] + adjMatrix[k][j];
+        if (rank == kNode) {
+            getRow(k, kRow, numV, dist);
+        }
+
+        MPI_Bcast(kRow, numV, MPI_INT, kNode, MPI_COMM_WORLD);
+
+        for (i = 0; i < numTargets; i++) {
+            for (j = 0; j < numV; j++) {
+                if (dist[i * numV + k] + kRow[j] < dist[i * numV + j]) {
+                    dist[i * numV + j] = dist[i * numV + k] + kRow[j];
                 }
             }
-            targetPaths[i] = adjMatrix[target];
         }
     }
+    //  Set unreachables to -1
+    for (int i = 0; i < numLocalV; i++) {
+        if (dist[i] == INF) {
+            dist[i] = -1;
+        }
+    }
+}
 
-    return targetPaths;
+void getRow(int v, int* rowOfV, int numV, int* dist) {
+    int offSet;
+    if (numV / clusterSize == 0 || numV < clusterSize) {
+        offSet = 0;
+    }
+    else {
+        offSet = v % (numV / clusterSize);
+    }
+    for (int i = 0; i < numV; i++) {
+        rowOfV[i] = dist[i + offSet * numV];
+    }
 }
