@@ -131,12 +131,10 @@ int* allocateTargets(int numV, int* vertexSet, int* numTargets) {
 */
 int** convertToLocalMatrix(int numV, int* targets, int* distances, int numTargets) {
     //  Initialize output matrix
-    int** localMatrix = (int**) malloc(sizeof(int*) * numTargets);
-    for (int i = 0; i < numV; i++) {
-        if(!(localMatrix[i] = (int*) malloc(sizeof(int*) * numV))) {
-            fprintf(stderr, "Error: could not allocate memory to matrix @ %s\n", __func__);
-            return NULL;
-        }
+    int** localMatrix = allocContiguousMatrix(numV);
+    if(!localMatrix) {
+        fprintf(stderr, "Error: could not allocate memory to matrix @ %s\n", __func__);
+        return NULL;
     }
 
     for (int i = 0; i < numTargets; i++) {
@@ -160,6 +158,37 @@ int** convertToLocalMatrix(int numV, int* targets, int* distances, int numTarget
 }
 
 int** gatherLocalMatrices(int numV, int** localMatrices, int numTargets) {
-    int** adjMatrix = NULL;
-}
+    int** adjMatrix = allocContiguousMatrix(numV);
+    if (!adjMatrix) {
+        fprintf(stderr, "Error: could not allocate memory to adjMatrix @ %s\n", __func__);
+        return NULL;
+    }
 
+    int *sendCounts, *displs;
+    //  initialize sendCounts and displs for Scatterv
+    if (!(sendCounts = (int *) malloc(sizeof(int) * clusterSize))) {
+        fprintf(stderr, "Error: could not allocate memory to sendCounts @ %s", __func__);
+        NULL;
+    } 
+    if (!(displs = (int *) malloc(sizeof(int) * clusterSize))) {
+        fprintf(stderr, "Error: could not allocate memory to displs @ %s", __func__);
+        NULL;
+    }
+
+    int rem = (numV * numV) % clusterSize;
+    int sum = 0;
+    for (int i = 0; i < clusterSize; i++) {
+        sendCounts[i] = (numV * numV) / clusterSize;
+        if (rem > 0) {
+            (sendCounts[i]) += numV;
+            rem--;
+        }
+
+        displs[i] = sum;
+        sum += sendCounts[i];
+    }
+
+    MPI_Gatherv(&(localMatrices[0][0]), numTargets, MPI_INT, &(adjMatrix[0][0]), sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
+
+    return adjMatrix;
+}
