@@ -201,6 +201,9 @@ int* calculateAPSP(int numV, int* distances, int numTargets, int* targets) {
     - PASS BY REFERENCE FUNCT
 */
 void FloydWarshall(int numV, int* dist, int numTargets, int* targets, int numLocalV) {
+    if (numTargets == 0) {
+	return;
+    }
     int k, i, j;
     int kNode;
     int* kRow = (int*) malloc(sizeof(int) * numV);

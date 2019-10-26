@@ -126,6 +126,7 @@ int main(int argc, char** argv) {
         free(sourceFileName);
     }
     
+    MPI_Barrier(MPI_COMM_WORLD);
     MPI_Finalize();
-    return apsp[0];
+    return 0;
 }
