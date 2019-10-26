@@ -162,9 +162,9 @@ int* calculateAPSP(int numV, int* distances, int numTargets, int* targets) {
     int rem = (numV * numV) % clusterSize;
     int sum = 0;
     for (int i = 0; i < clusterSize; i++) {
-        sendCounts[i] = (numV * numV) / clusterSize;
+        sendCounts[i] = numV * (numV / clusterSize);
         if (rem > 0) {
-            (sendCounts[i])++;
+            (sendCounts[i]) += numV;
             rem--;
         }
 
@@ -192,7 +192,7 @@ int* calculateAPSP(int numV, int* distances, int numTargets, int* targets) {
     MPI_Scatterv(distances, sendCounts, displs, MPI_INT, localEdgeArray, numLocalV, MPI_INT, 0, MPI_COMM_WORLD);
     FloydWarshall(numV, localEdgeArray, numTargets, targets, numLocalV);
     MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Gatherv(localEdgeArray, numLocalV, MPI_INT, apsp, sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Gatherv(localEdgeArray, sendCounts[rank], MPI_INT, apsp, sendCounts, displs, MPI_INT, 0, MPI_COMM_WORLD);
 
     return apsp;
 }
